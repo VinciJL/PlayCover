@@ -339,4 +339,4 @@
 "alert.version.title" = "New Version Available";
 "alert.version.text" = "A new version for %@ is available. Do you want to download it?";
 
-"settings.picker.adaptiveRes.7" = "Resizable (Fixed Render)";
+"settings.picker.adaptiveRes.7" = "Resizable (Free Ratio)";

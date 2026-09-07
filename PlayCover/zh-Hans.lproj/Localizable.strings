@@ -435,4 +435,4 @@
 "alert.version.text" = "%@有新版本可用。是否要下载？";
 "settings.stepper.maaToolsPort" = "端口：";
 "settings.toggle.mtlCapture" = "从Metal抓取";
-"settings.picker.adaptiveRes.7" = "可缩放（固定渲染）";
+"settings.picker.adaptiveRes.7" = "可缩放（自由比例）";
