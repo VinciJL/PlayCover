@@ -263,7 +263,7 @@ struct GraphicsView: View {
                     .help("settings.picker.adaptiveRes.help")
                 }
                 HStack {
-                    if settings.settings.resolution == 5 {
+                    if settings.settings.resolution == 5 || settings.settings.resolution == 7 {
                         Text(NSLocalizedString("settings.text.customWidth", comment: "") + ":")
                         Stepper {
                             TextField(
@@ -454,6 +454,10 @@ struct GraphicsView: View {
             width = getWidthFromAspectRatio(height)
         // Adaptive resolution = Custom
         case 5:
+            width = customWidth
+            height = customHeight
+        // Resizable with fixed render resolution
+        case 7:
             width = customWidth
             height = customHeight
         // Adaptive resolution = Off
