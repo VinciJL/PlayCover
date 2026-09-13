@@ -342,24 +342,6 @@ struct GraphicsView: View {
                         Spacer()
                     }
                 }
-                HStack {
-                    Text("settings.picker.scaler")
-                    Spacer()
-                    Stepper {
-                        TextField(
-                            "settings.text.scaler",
-                            value: $customScaler,
-                            formatter: GraphicsView.fractionFormatter,
-                            onCommit: {
-                                Task { @MainActor in NSApp.keyWindow?.makeFirstResponder(nil) }
-                            })
-                            .frame(width: 125)
-                    } onIncrement: {
-                        customScaler += 0.1
-                    } onDecrement: {
-                        if customScaler > 0.5 { customScaler -= 0.1 }
-                    }
-                }
                 VStack(alignment: .leading) {
                     if #available(macOS 13.2, *) {
                         HStack {
