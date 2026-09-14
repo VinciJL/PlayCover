@@ -398,6 +398,8 @@
 "settings.toggle.disableBuiltinMouse" = "禁用内置鼠标支持";
 "settings.toggle.disableBuiltinMouse.help" = "禁用应用的内置鼠标支持以避免点击冲突。";
 "settings.picker.adaptiveRes.6" = "可调整大小";
+"settings.toggle.mode7" = "启用固定分辨率模式";
+"settings.toggle.mode7.help" = "启用增强截图路径和固定分辨率 mode 7 选项。";
 "settings.picker.aspectRatio.free" = "自由比例";
 "settings.picker.aspectRatio.custom" = "自定义";
 "settings.settings.displayRotation" = "界面方向";

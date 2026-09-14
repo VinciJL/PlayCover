@@ -167,6 +167,8 @@
 "settings.picker.adaptiveRes.1" = "Auto (Based on Display)";
 "settings.picker.adaptiveRes.5" = "Custom";
 "settings.picker.adaptiveRes.6" = "Resizable";
+"settings.toggle.mode7" = "Enable fixed-resolution mode";
+"settings.toggle.mode7.help" = "Enable the enhanced capture path and the fixed-resolution mode 7 option.";
 "settings.text.customHeight" = "Height";
 "settings.text.customWidth" = "Width";
 "settings.text.detectedResolution" = "Detected Resolution:";

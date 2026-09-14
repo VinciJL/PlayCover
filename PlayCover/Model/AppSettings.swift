@@ -20,6 +20,7 @@ struct AppSettingsData: Codable {
     var windowHeight = 1080
     var customScaler = 2.0
     var resolution = 1
+    var enableMode7 = false
     var aspectRatio = 1
     var notch: Bool = NSScreen.hasNotch()
     var bypass = false
@@ -71,6 +72,7 @@ struct AppSettingsData: Codable {
         windowHeight = try container.decodeIfPresent(Int.self, forKey: .windowHeight) ?? 1080
         customScaler = try container.decodeIfPresent(Double.self, forKey: .customScaler) ?? 2.0
         resolution = try container.decodeIfPresent(Int.self, forKey: .resolution) ?? 1
+        enableMode7 = try container.decodeIfPresent(Bool.self, forKey: .enableMode7) ?? false
         aspectRatio = try container.decodeIfPresent(Int.self, forKey: .aspectRatio) ?? 1
         notch = try container.decodeIfPresent(Bool.self, forKey: .notch) ?? NSScreen.hasNotch()
         bypass = try container.decodeIfPresent(Bool.self, forKey: .bypass) ?? false

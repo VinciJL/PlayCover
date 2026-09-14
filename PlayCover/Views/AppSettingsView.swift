@@ -247,6 +247,16 @@ struct GraphicsView: View {
                     }
                 }
                 HStack {
+                    Toggle("settings.toggle.mode7", isOn: $settings.settings.enableMode7)
+                        .help("settings.toggle.mode7.help")
+                        .onChange(of: settings.settings.enableMode7) { enabled in
+                            if !enabled && settings.settings.resolution == 7 {
+                                settings.settings.resolution = 5
+                            }
+                        }
+                    Spacer()
+                }
+                HStack {
                     Text("settings.picker.adaptiveRes")
                     Spacer()
                     Picker("", selection: $settings.settings.resolution) {
@@ -257,7 +267,9 @@ struct GraphicsView: View {
                         Text("4K").tag(4)
                         Text("settings.picker.adaptiveRes.5").tag(5)
                         Text("settings.picker.adaptiveRes.6").tag(6)
-                        Text("settings.picker.adaptiveRes.7").tag(7)
+                        if settings.settings.enableMode7 {
+                            Text("settings.picker.adaptiveRes.7").tag(7)
+                        }
                     }
                     .frame(width: 250, alignment: .leading)
                     .help("settings.picker.adaptiveRes.help")
@@ -388,6 +400,9 @@ struct GraphicsView: View {
             }
             .padding()
             .onAppear {
+                if !settings.settings.enableMode7 && settings.settings.resolution == 7 {
+                    settings.settings.resolution = 5
+                }
                 customWidth = settings.settings.windowWidth
                 customHeight = settings.settings.windowHeight
                 customScaler = settings.settings.customScaler
