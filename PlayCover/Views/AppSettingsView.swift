@@ -257,12 +257,13 @@ struct GraphicsView: View {
                         Text("4K").tag(4)
                         Text("settings.picker.adaptiveRes.5").tag(5)
                         Text("settings.picker.adaptiveRes.6").tag(6)
+                        Text("settings.picker.adaptiveRes.7").tag(7)
                     }
                     .frame(width: 250, alignment: .leading)
                     .help("settings.picker.adaptiveRes.help")
                 }
                 HStack {
-                    if settings.settings.resolution == 5 {
+                    if settings.settings.resolution == 5 || settings.settings.resolution == 7 {
                         Text(NSLocalizedString("settings.text.customWidth", comment: "") + ":")
                         Stepper {
                             TextField(
@@ -339,24 +340,6 @@ struct GraphicsView: View {
                         Text("\(width) x \(height)")
                     } else {
                         Spacer()
-                    }
-                }
-                HStack {
-                    Text("settings.picker.scaler")
-                    Spacer()
-                    Stepper {
-                        TextField(
-                            "settings.text.scaler",
-                            value: $customScaler,
-                            formatter: GraphicsView.fractionFormatter,
-                            onCommit: {
-                                Task { @MainActor in NSApp.keyWindow?.makeFirstResponder(nil) }
-                            })
-                            .frame(width: 125)
-                    } onIncrement: {
-                        customScaler += 0.1
-                    } onDecrement: {
-                        if customScaler > 0.5 { customScaler -= 0.1 }
                     }
                 }
                 VStack(alignment: .leading) {
@@ -453,6 +436,10 @@ struct GraphicsView: View {
             width = getWidthFromAspectRatio(height)
         // Adaptive resolution = Custom
         case 5:
+            width = customWidth
+            height = customHeight
+        // mode 7：窗口可缩放，但渲染与截图保持自定义固定分辨率。
+        case 7:
             width = customWidth
             height = customHeight
         // Adaptive resolution = Off
