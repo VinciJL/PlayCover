@@ -184,9 +184,16 @@ jobs:
           mode 7：窗口可自由缩放，渲染分辨率保持固定；Unity/UIKit/WebView 等图层先在固定画布上合成，再缩放铺满窗口。
           已知问题：公告等普通 UIKit 图层的绘制分辨率仍随窗口尺寸变化；个别窗口在层级变化时可能间歇性闪烁。
           EOF
-          gh release create "${{ inputs.tag }}" \
-            --target "${GITHUB_SHA}" \
-            --title "PlayCover ${{ inputs.tag }} (mode 7 固定画布渲染)" \
-            --notes-file notes.md \
-            ${{ inputs.draft && '--draft' || '' }} \
-            "${{ steps.dmg.outputs.path }}"
+          TAG="${{ inputs.tag }}"
+          DMG="${{ steps.dmg.outputs.path }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # 已存在时只补传资产：避免上次创建遇到 API 瞬时错误后重复创建失败。
+            gh release upload "$TAG" "$DMG" --clobber
+          else
+            gh release create "$TAG" \
+              --target "${GITHUB_SHA}" \
+              --title "PlayCover ${TAG} (mode 7 固定画布渲染)" \
+              --notes-file notes.md \
+              ${{ inputs.draft && '--draft' || '' }} \
+              "$DMG"
+          fi
