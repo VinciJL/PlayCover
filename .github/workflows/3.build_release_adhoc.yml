@@ -52,6 +52,9 @@ jobs:
 
       - name: Build PlayTools framework (Release)
         shell: bash
+        env:
+          # FASTLANE=1 让工程里的 SwiftLint 脚本阶段跳过，CI 上不安装 swiftlint。
+          FASTLANE: "1"
         run: |
           cd .ci/PlayTools
           xcodebuild -project PlayTools.xcodeproj -scheme PlayTools \
