@@ -67,11 +67,42 @@ jobs:
       - name: Inject framework as xcframework
         shell: bash
         run: |
+          # 手工拼装 xcframework：-create-xcframework 会校验 .swiftinterface，
+          # 而 Release 构建（未开启 Build Libraries for Distribution）不会生成它。
           FW=".ci/PlayTools/.ci-dd/Build/Products/Release-iphoneos/PlayTools.framework"
           XCF="Carthage/Build/PlayTools.xcframework"
           rm -rf Carthage/Build
-          mkdir -p Carthage/Build
-          xcodebuild -create-xcframework -framework "$FW" -output "$XCF"
+          mkdir -p "$XCF/ios-arm64"
+          ditto "$FW" "$XCF/ios-arm64/PlayTools.framework"
+          cat > "$XCF/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+          	<key>AvailableLibraries</key>
+          	<array>
+          		<dict>
+          			<key>BinaryPath</key>
+          			<string>PlayTools.framework/PlayTools</string>
+          			<key>LibraryIdentifier</key>
+          			<string>ios-arm64</string>
+          			<key>LibraryPath</key>
+          			<string>PlayTools.framework</string>
+          			<key>SupportedArchitectures</key>
+          			<array>
+          				<string>arm64</string>
+          			</array>
+          			<key>SupportedPlatform</key>
+          			<string>ios</string>
+          		</dict>
+          	</array>
+          	<key>CFBundlePackageType</key>
+          	<string>XFWK</string>
+          	<key>XCFrameworkFormatVersion</key>
+          	<string>1.0</string>
+          </dict>
+          </plist>
+          PLIST
 
       - name: Drop ad-hoc incompatible signing phase
         shell: bash
