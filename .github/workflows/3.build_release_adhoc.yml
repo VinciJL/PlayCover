@@ -1,0 +1,158 @@
+name: Build & Release (ad-hoc)
+
+# 本 fork 没有 Apple 签名证书，使用 ad-hoc 签名构建发布包。
+# 由 CI 构建的好处：二进制里的编译路径只会包含 runner 的路径，不暴露本地用户名。
+#
+# 前置条件：app 仓库 Cartfile.resolved 已 pin 对应的 PlayTools 提交。
+# 用法：手动触发，填入发布 tag（例：v3.1.0.maa.resizeable.1）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "发布 tag（例：v3.1.0.maa.resizeable.1）"
+        required: true
+        type: string
+      draft:
+        description: "先创建 draft release"
+        required: false
+        default: true
+        type: boolean
+
+env:
+  CI: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Read pinned PlayTools revision
+        id: playtools
+        shell: bash
+        run: |
+          REV="$(sed -nE 's|.*VinciJL/PlayTools" "([0-9a-f]+)".*|\1|p' Cartfile.resolved)"
+          if [ -z "$REV" ]; then
+            echo "Cartfile.resolved 中未找到 PlayTools 修订" >&2
+            exit 1
+          fi
+          echo "rev=$REV" >> "$GITHUB_OUTPUT"
+          echo "PlayTools rev: $REV"
+
+      - name: Checkout PlayTools
+        uses: actions/checkout@v7
+        with:
+          repository: VinciJL/PlayTools
+          ref: ${{ steps.playtools.outputs.rev }}
+          path: .ci/PlayTools
+
+      - name: Build PlayTools framework (Release)
+        shell: bash
+        run: |
+          cd .ci/PlayTools
+          xcodebuild -project PlayTools.xcodeproj -scheme PlayTools \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath .ci-dd \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Inject framework as xcframework
+        shell: bash
+        run: |
+          FW=".ci/PlayTools/.ci-dd/Build/Products/Release-iphoneos/PlayTools.framework"
+          XCF="Carthage/Build/PlayTools.xcframework"
+          rm -rf Carthage/Build
+          mkdir -p Carthage/Build
+          xcodebuild -create-xcframework -framework "$FW" -output "$XCF"
+
+      - name: Drop ad-hoc incompatible signing phase
+        shell: bash
+        run: |
+          # "Codesign sparkle" 阶段使用 EXPANDED_CODE_SIGN_IDENTITY_NAME，ad-hoc 构建下必然失败。
+          python3 - <<'PY'
+          import sys
+
+          path = "PlayCover.xcodeproj/project.pbxproj"
+          target = "\t\t\t\tAAC28F222899A05B005057FB /* Codesign sparkle */,\n"
+          data = open(path, encoding="utf-8").read()
+          if target not in data:
+              print("Codesign sparkle 阶段未找到，工程结构可能已变化", file=sys.stderr)
+              sys.exit(1)
+          open(path, "w", encoding="utf-8").write(data.replace(target, "", 1))
+          PY
+
+      - name: Ensure carthage
+        shell: bash
+        run: |
+          # "Copy Carthage frameworks" 阶段依赖 carthage copy-frameworks。
+          command -v carthage || brew install carthage
+
+      - name: Archive app
+        shell: bash
+        run: |
+          FASTLANE=1 xcodebuild archive \
+            -project PlayCover.xcodeproj \
+            -scheme PlayCover \
+            -configuration Release \
+            -archivePath build/PlayCover.xcarchive \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Ad-hoc sign
+        shell: bash
+        run: |
+          APP="build/PlayCover.xcarchive/Products/Applications/PlayCover.app"
+          codesign --force --deep --sign - --timestamp=none "$APP/Contents/Frameworks/PlayTools.framework"
+          codesign --force --deep --sign - --timestamp=none "$APP/Contents/Frameworks/Sparkle.framework"
+          codesign --force --deep --sign - --timestamp=none "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      - name: Create DMG
+        id: dmg
+        shell: bash
+        run: |
+          APP="build/PlayCover.xcarchive/Products/Applications/PlayCover.app"
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")"
+          echo "app version: $VERSION"
+          # 产物名与既有发布一致：去掉 tag 前缀 v，例 PlayCover_3.1.0.maa.resizeable.1.dmg
+          TAG="${{ inputs.tag }}"
+          OUT="PlayCover_${TAG#v}.dmg"
+          rm -rf build/dmg-root
+          mkdir -p build/dmg-root
+          ditto "$APP" build/dmg-root/PlayCover.app
+          ln -s /Applications build/dmg-root/Applications
+          hdiutil create -volname "PlayCover" -srcfolder build/dmg-root -format UDBZ -ov "$OUT"
+          echo "path=$OUT" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.tag }}
+          path: ${{ steps.dmg.outputs.path }}
+
+      - name: Create release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > notes.md <<EOF
+          由 GitHub Actions 从 app 提交 \`${GITHUB_SHA}\` 构建，
+          PlayTools 框架提交 \`${{ steps.playtools.outputs.rev }}\`（Release 配置）。
+
+          ad-hoc 签名，未公证，仅供本地安装使用。
+
+          mode 7：窗口可自由缩放，渲染分辨率保持固定；Unity/UIKit/WebView 等图层先在固定画布上合成，再缩放铺满窗口。
+          已知问题：公告等普通 UIKit 图层的绘制分辨率仍随窗口尺寸变化；个别窗口在层级变化时可能间歇性闪烁。
+          EOF
+          gh release create "${{ inputs.tag }}" \
+            --target "${GITHUB_SHA}" \
+            --title "PlayCover ${{ inputs.tag }} (mode 7 固定画布渲染)" \
+            --notes-file notes.md \
+            ${{ inputs.draft && '--draft' || '' }} \
+            "${{ steps.dmg.outputs.path }}"
